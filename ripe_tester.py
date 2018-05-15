@@ -54,20 +54,38 @@ total_fail=0;
 total_some=0;
 total_np = 0;
 
+total = 3840
+nth = 0
 
 for attack in attacks:
 	for tech in techniques:
 		for loc in locations:
 			for ptr in code_ptr:
 				for func in funcs:
+					nth = nth + 1
 					i = 0
 					s_attempts = 0
 					attack_possible = 1
+					stamp = "["
+					if nth < 10:
+						stamp = stamp + "000"
+					elif nth < 100:
+						stamp = stamp + "00"
+					elif nth < 1000:
+						stamp = stamp + "0"
+					stamp = stamp + str(nth) + "/3840]"
 					while i < repeat_times:
 						i += 1
 
 						os.system("rm /tmp/ripe_log")
+						stamp2 = ""
+						if repeat_times > 1:
+							stamp2 = "["
+							if i < 9:
+								stamp2 = stamp2 + "0"
+							stamp2 = stamp2+str(i)+"/"+str(repeat_times)+"] "
 						cmdline = "./build/ripe_attack_generator -t "+tech+" -i "+attack+" -c " + ptr + "  -l " + loc +" -f " + func + " > /tmp/ripe_log 2>&1"
+						print stamp,stamp2
 						os.system(cmdline)
 						log = open("/tmp/ripe_log","r")
 		
