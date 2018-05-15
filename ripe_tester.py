@@ -76,13 +76,14 @@ for attack in attacks:
 					stamp = stamp + str(nth) + "/3840]"
 					while i < repeat_times:
 						i += 1
-
 						os.system("rm /tmp/ripe_log")
 						stamp2 = ""
 						if repeat_times > 1:
 							stamp2 = "["
-							if i < 9:
+							if i < 10:
 								stamp2 = stamp2 + "0"
+							elif i < 100:
+								stamp2 = stamp2 + "00"
 							stamp2 = stamp2+str(i)+"/"+str(repeat_times)+"] "
 						cmdline = "./build/ripe_attack_generator -t "+tech+" -i "+attack+" -c " + ptr + "  -l " + loc +" -f " + func + " > /tmp/ripe_log 2>&1"
 						print stamp,stamp2
@@ -118,9 +119,3 @@ for attack in attacks:
 
 total_attacks = total_ok + total_some + total_fail + total_np;
 print "\n||Summary|| OK: ",total_ok," ,SOME: ",total_some," ,FAIL: ",total_fail," ,NP: ",total_np," ,Total Attacks: ",total_attacks
-
-						
-					
-
-
-

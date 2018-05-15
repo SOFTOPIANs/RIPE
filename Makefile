@@ -5,7 +5,7 @@
 #
 ## [CFLAGS settings]
 # SAFESTACK
-CFLAGS=-fno-stack-protector -fsanitize=safestack -w
+CFLAGS=-fno-stack-protector -fsanitize=safe-stack -w
 # CPS
 # CFLAGS=-fno-stack-protector -fsanitize=cpi -mllvm -CPS -w
 # CPI
