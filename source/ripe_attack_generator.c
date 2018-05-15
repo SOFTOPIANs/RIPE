@@ -505,10 +505,24 @@ void perform_attack(FILE *output_stream,
       target_addr = &data_func_ptr1;
       break;
     case LONGJMP_BUF_STACK_VAR:
+#ifdef __APPLE__
+      if(output_error_msg) {
+        fprintf(stderr, "Error: Unsupported case on macOS\n");
+      }
+      exit(1);
+#else
       target_addr = &stack_jmp_buffer[0].__jmpbuf[5];
+#endif
       break;
     case LONGJMP_BUF_STACK_PARAM:
+#ifdef __APPLE__
+      if(output_error_msg) {
+        fprintf(stderr, "Error: Unsupported case on macOS\n");
+      }
+      exit(1);
+#else
       target_addr = &stack_jmp_buffer_param[0].__jmpbuf[5];
+#endif
       break;
     case LONGJMP_BUF_HEAP:
       //target_addr = &heap_jmp_buffer[0].__jmpbuf[5];
@@ -517,10 +531,24 @@ void perform_attack(FILE *output_stream,
 					//jmp_buf structure
       break;
     case LONGJMP_BUF_BSS:
+#ifdef __APPLE__
+      if(output_error_msg) {
+        fprintf(stderr, "Error: Unsupported case on macOS\n");
+      }
+      exit(1);
+#else
       target_addr = &bss_jmp_buffer[0].__jmpbuf[5];
+#endif
       break;
     case LONGJMP_BUF_DATA:
+#ifdef __APPLE__
+      if(output_error_msg) {
+        fprintf(stderr, "Error: Unsupported case on macOS\n");
+      }
+      exit(1);
+#else
       target_addr = &data_jmp_buffer[0].__jmpbuf[5];
+#endif
       break;
     case STRUCT_FUNC_PTR_STACK:
       target_addr = &stack_struct.func_ptr;
@@ -720,21 +748,49 @@ void perform_attack(FILE *output_stream,
       	payload.overflow_ptr = &data_func_ptr1;
       break;
     case LONGJMP_BUF_STACK_VAR:
+#ifdef __APPLE__
+      if(output_error_msg) {
+        fprintf(stderr, "Error: Unsupported case on macOS\n");
+      }
+      exit(1);
+#else
       payload.overflow_ptr = &stack_jmp_buffer[0].__jmpbuf[5];
+#endif
       break;
     case LONGJMP_BUF_STACK_PARAM:
+#ifdef __APPLE__
+      if(output_error_msg) {
+        fprintf(stderr, "Error: Unsupported case on macOS\n");
+      }
+      exit(1);
+#else
       payload.overflow_ptr = &stack_jmp_buffer_param[0].__jmpbuf[5];
+#endif
       break;
     case LONGJMP_BUF_HEAP:
       //payload.overflow_ptr = &heap_jmp_buffer[0].__jmpbuf[5];
       payload.overflow_ptr = (void *)heap_jmp_buffer + 20; // NN
       break;
     case LONGJMP_BUF_BSS:
+#ifdef __APPLE__
+      if(output_error_msg) {
+        fprintf(stderr, "Error: Unsupported case on macOS\n");
+      }
+      exit(1);
+#else
       //payload.overflow_ptr = &bss_jmp_buffer[0].__jmpbuf[5];
       payload.overflow_ptr = &bss_jmp_buffer_indirect[0].__jmpbuf[5]; //NN
+#endif
       break;
     case LONGJMP_BUF_DATA:
+#ifdef __APPLE__
+      if(output_error_msg) {
+        fprintf(stderr, "Error: Unsupported case on macOS\n");
+      }
+      exit(1);
+#else
       payload.overflow_ptr = &data_jmp_buffer[0].__jmpbuf[5];
+#endif
       break;
     default:
       if(output_error_msg) {
