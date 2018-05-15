@@ -82,8 +82,6 @@ for attack in attacks:
 							stamp2 = "["
 							if i < 10:
 								stamp2 = stamp2 + "0"
-							elif i < 100:
-								stamp2 = stamp2 + "00"
 							stamp2 = stamp2+str(i)+"/"+str(repeat_times)+"] "
 						cmdline = "./build/ripe_attack_generator -t "+tech+" -i "+attack+" -c " + ptr + "  -l " + loc +" -f " + func + " > /tmp/ripe_log 2>&1"
 						print stamp,stamp2
