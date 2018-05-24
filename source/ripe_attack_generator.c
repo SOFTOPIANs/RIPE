@@ -117,7 +117,7 @@ int fooz(char *a, int b){
 	zz =a ;
 	ff = b;
 
-	fprintf(stderr,"Fooz was called");
+	printf("Fooz was called");
 	return 1;
 }
 
@@ -138,8 +138,8 @@ int main(int argc, char **argv) {
 		break;
   }
   if (i == 512){
-	fprintf(stderr,"Error. Can't allocate appropriate stack_jmp_buffer\n");
-	exit(1);
+    printf("Error. Can't allocate appropriate stack_jmp_buffer\n");
+	   exit(1);
   }
 
 
@@ -163,10 +163,10 @@ int main(int argc, char **argv) {
     case 'd':
       if(strcmp("t", optarg) == 0) {
 	output_debug_info = TRUE;
-	fprintf(stderr, "Set output_debug_info = TRUE\n");
+	printf( "Set output_debug_info = TRUE\n");
       } else {
 	output_debug_info = FALSE;
-	fprintf(stderr,
+	printf(
 		"Set output_debug_info = FALSE since option was \"%s\"\n",
 		optarg);
       }
@@ -174,10 +174,10 @@ int main(int argc, char **argv) {
     case 'e':
       if(strcmp("t", optarg) == 0) {
       	output_error_msg = TRUE;
-	     fprintf(stderr, "Set output_error_msg = TRUE\n");
+	     printf( "Set output_error_msg = TRUE\n");
       } else {
 	output_error_msg = FALSE;
-	fprintf(stderr,
+	printf(
 		"Set output_error_msg = FALSE since option was \"%s\"\n",
 		optarg);
       }
@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
       output_stream = fopen(optarg, "a+");
       if(output_stream == NULL) {
 	if(output_error_msg) {
-	  fprintf(stderr, "Error: Could not open file \"%s\"\n", optarg);
+	  printf( "Error: Could not open file \"%s\"\n", optarg);
 	}
       } else {
 	has_opened_output_stream = TRUE;
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
       break;
     default:
       if(output_error_msg) {
-	fprintf(stderr, "Error: Unknown command option \"%s\"\n", optarg);
+	printf( "Error: Unknown command option \"%s\"\n", optarg);
       }
       exit(1);
       break;
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
     output_stream = fopen(DEBUG_MEMDUMP, "a+");
     if(output_stream == NULL) {
       if(output_error_msg) {
-	fprintf(stderr, "Error: Could not open file \"debug.txt\"\n");
+	printf( "Error: Could not open file \"debug.txt\"\n");
       }
     } else {
       has_opened_output_stream = TRUE;
@@ -378,11 +378,11 @@ void perform_attack(FILE *output_stream,
     buffer = stack_buffer;
     while (contains_terminating_char((unsigned long)buffer)){
 	buffer += rand() % 10;
-	fprintf(stderr,"Trying %p\n",buffer);
+	printf("Trying %p\n",buffer);
     }
     /* Out of Bounds */
     if (buffer > stack_buffer + sizeof(stack_buffer) - 100){
-	fprintf(stderr,"Error. Couldn't find appropriate buffer on the stack\n");
+	printf("Error. Couldn't find appropriate buffer on the stack\n");
 	exit(1);
     }
 
@@ -413,7 +413,7 @@ void perform_attack(FILE *output_stream,
       heap_jmp_buffer = (int *)malloc(sizeof(jmp_buf)); //NN Now it does...hopefully in the correct order
     } else {
       if(output_error_msg) {
-	fprintf(stderr, "Error: Heap buffers allocated in the wrong order.\n");
+	printf( "Error: Heap buffers allocated in the wrong order.\n");
       }
       exit(1);
     }
@@ -466,7 +466,7 @@ void perform_attack(FILE *output_stream,
     break;
   default:
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of location\n");
+      printf( "Error: Unknown choice of location\n");
     }
     exit(1);
     break;
@@ -507,7 +507,7 @@ void perform_attack(FILE *output_stream,
     case LONGJMP_BUF_STACK_VAR:
 #ifdef __APPLE__
       if(output_error_msg) {
-        fprintf(stderr, "Error: Unsupported case on macOS\n");
+        printf( "Error: Unsupported case on macOS\n");
       }
       exit(1);
 #else
@@ -517,7 +517,7 @@ void perform_attack(FILE *output_stream,
     case LONGJMP_BUF_STACK_PARAM:
 #ifdef __APPLE__
       if(output_error_msg) {
-        fprintf(stderr, "Error: Unsupported case on macOS\n");
+        printf( "Error: Unsupported case on macOS\n");
       }
       exit(1);
 #else
@@ -533,7 +533,7 @@ void perform_attack(FILE *output_stream,
     case LONGJMP_BUF_BSS:
 #ifdef __APPLE__
       if(output_error_msg) {
-        fprintf(stderr, "Error: Unsupported case on macOS\n");
+        printf( "Error: Unsupported case on macOS\n");
       }
       exit(1);
 #else
@@ -543,7 +543,7 @@ void perform_attack(FILE *output_stream,
     case LONGJMP_BUF_DATA:
 #ifdef __APPLE__
       if(output_error_msg) {
-        fprintf(stderr, "Error: Unsupported case on macOS\n");
+        printf( "Error: Unsupported case on macOS\n");
       }
       exit(1);
 #else
@@ -565,7 +565,7 @@ void perform_attack(FILE *output_stream,
 
     default:
       if(output_error_msg) {
-	fprintf(stderr, "Error: Unknown choice of code pointer\n");
+	printf( "Error: Unknown choice of code pointer\n");
       }
       exit(1);
       break;
@@ -589,7 +589,7 @@ void perform_attack(FILE *output_stream,
       break;
     default:
       if(output_error_msg) {
-	fprintf(stderr, "Error: Unknown choice of pointer\n");
+	printf( "Error: Unknown choice of pointer\n");
       }
       exit(1);
       break;
@@ -597,7 +597,7 @@ void perform_attack(FILE *output_stream,
     break;
   default:
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of technique\n");
+      printf( "Error: Unknown choice of technique\n");
     }
     exit(1);
     break;
@@ -705,7 +705,7 @@ void perform_attack(FILE *output_stream,
 
     default:
       if(output_error_msg) {
-	fprintf(stderr, "Error: Unknown choice of attack parameterA\n");
+	printf( "Error: Unknown choice of attack parameterA\n");
       }
       exit(1);
       break;
@@ -750,7 +750,7 @@ void perform_attack(FILE *output_stream,
     case LONGJMP_BUF_STACK_VAR:
 #ifdef __APPLE__
       if(output_error_msg) {
-        fprintf(stderr, "Error: Unsupported case on macOS\n");
+        printf( "Error: Unsupported case on macOS\n");
       }
       exit(1);
 #else
@@ -760,7 +760,7 @@ void perform_attack(FILE *output_stream,
     case LONGJMP_BUF_STACK_PARAM:
 #ifdef __APPLE__
       if(output_error_msg) {
-        fprintf(stderr, "Error: Unsupported case on macOS\n");
+        printf( "Error: Unsupported case on macOS\n");
       }
       exit(1);
 #else
@@ -774,7 +774,7 @@ void perform_attack(FILE *output_stream,
     case LONGJMP_BUF_BSS:
 #ifdef __APPLE__
       if(output_error_msg) {
-        fprintf(stderr, "Error: Unsupported case on macOS\n");
+        printf( "Error: Unsupported case on macOS\n");
       }
       exit(1);
 #else
@@ -785,7 +785,7 @@ void perform_attack(FILE *output_stream,
     case LONGJMP_BUF_DATA:
 #ifdef __APPLE__
       if(output_error_msg) {
-        fprintf(stderr, "Error: Unsupported case on macOS\n");
+        printf( "Error: Unsupported case on macOS\n");
       }
       exit(1);
 #else
@@ -794,7 +794,7 @@ void perform_attack(FILE *output_stream,
       break;
     default:
       if(output_error_msg) {
-	fprintf(stderr, "Error: Unknown choice of code pointer\n");
+	printf( "Error: Unknown choice of code pointer\n");
       }
       exit(1);
       break;
@@ -802,7 +802,7 @@ void perform_attack(FILE *output_stream,
     break;
   default:
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of technique\n");
+      printf( "Error: Unknown choice of technique\n");
     }
     exit(1);
     break;
@@ -815,22 +815,22 @@ void perform_attack(FILE *output_stream,
 		     - (unsigned long)buffer
 		     + 1); /* For null termination so that buffer can be     */
                            /* used with string functions in standard library */
-     fprintf(stderr, "target_addr == %p\n", target_addr);
-     fprintf(stderr, "buffer == %p\n", buffer);
-     fprintf(stderr, "psize == %d\n",payload.size);
-     fprintf(stderr, "stack_buffer == %p\n", stack_buffer);
+     printf( "target_addr == %p\n", target_addr);
+     printf( "buffer == %p\n", buffer);
+     printf( "psize == %d\n",payload.size);
+     printf( "stack_buffer == %p\n", stack_buffer);
 
 
   } else {
     if(output_error_msg) {
-      fprintf(stderr,
+      printf(
 	      "Error: Target address is lower than address of overflow buffer.\n");
-      fprintf(stderr,
+      printf(
 	      " Overflow direction is towards higher addresses.\n");
-      fprintf(stderr, "target_addr == %p\n", target_addr);
-      fprintf(stderr, "heap_func_ptr == %p\n", heap_func_ptr);
-      fprintf(stderr, "buffer == %p\n", buffer);
-      fprintf(stderr, "payload.size == %d\n", payload.size);
+      printf( "target_addr == %p\n", target_addr);
+      printf( "heap_func_ptr == %p\n", heap_func_ptr);
+      printf( "buffer == %p\n", buffer);
+      printf( "payload.size == %d\n", payload.size);
     }
     exit(1); 
   }
@@ -854,8 +854,7 @@ void perform_attack(FILE *output_stream,
 
   if(!build_payload(&payload)) {
     if(output_error_msg) {
-      fprintf(stderr, "Error: Could not build payload\n");
-      fflush(stderr);
+      printf("Error: Could not build payload\n");
     }
     exit(1);
   }
@@ -960,7 +959,7 @@ void perform_attack(FILE *output_stream,
     break;
   default:
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of function\n");
+      printf( "Error: Unknown choice of function\n");
     }
     exit(1);
     break;
@@ -1047,7 +1046,7 @@ void perform_attack(FILE *output_stream,
       break;
     default:
       if(output_error_msg) {
-	fprintf(stderr, "Error: Unknown choice of attack parameterB\n");
+	printf( "Error: Unknown choice of attack parameterB\n");
       }
       exit(1);
       break;
@@ -1059,7 +1058,7 @@ void perform_attack(FILE *output_stream,
     break;
   default:
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of technique\n");
+      printf( "Error: Unknown choice of technique\n");
     }
     exit(1);
     break;
@@ -1140,7 +1139,7 @@ void perform_attack(FILE *output_stream,
 
     default:
       if(output_error_msg) {
-	fprintf(stderr, "Error: Unknown choice of code pointer\n");
+	printf( "Error: Unknown choice of code pointer\n");
       }
       exit(1);
       break;
@@ -1157,7 +1156,7 @@ void perform_attack(FILE *output_stream,
 			     DEFAULT_DUMP_SIZE);
     fflush(output_stream);
     if(output_error_msg) {
-      fprintf(stderr, "Dumped memory to stream\n");
+      printf( "Dumped memory to stream\n");
     }
 
     sleep(1);
@@ -1218,7 +1217,7 @@ boolean build_payload(CHARPAYLOAD *payload) {
 
   default:
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of attack parameter");
+      printf( "Error: Unknown choice of attack parameter");
     }
     exit(1);
     break;
@@ -1247,7 +1246,7 @@ boolean build_payload(CHARPAYLOAD *payload) {
   memset((payload->buffer + size_shellcode), 'A', bytes_to_pad);
 
   //NN
-  fprintf(stderr,"\noverflow_ptr: %p\n",payload->overflow_ptr);
+  printf("\noverflow_ptr: %p\n",payload->overflow_ptr);
 
 
   /* *************************************** */
@@ -1294,7 +1293,7 @@ boolean build_payload(CHARPAYLOAD *payload) {
     if(attack.inject_param == RETURN_INTO_LIBC){
 	void *pr = fake_esp_jmpbuff + 12;
 	memcpy(&(payload->buffer[size_shellcode + bytes_to_pad - 1*sizeof(long)]),&pr,sizeof(long));
-	fprintf(stderr,"Changed esp register in payload\n");
+	printf("Changed esp register in payload\n");
     }
 
   }
@@ -1406,7 +1405,7 @@ boolean build_payload(CHARPAYLOAD *payload) {
 
     } else {
       if(output_error_msg) {
-	fprintf(stderr, "Error: Unknown choice of attack parameter");
+	printf( "Error: Unknown choice of attack parameter");
       }
       exit(1);
     }
@@ -1417,7 +1416,7 @@ boolean build_payload(CHARPAYLOAD *payload) {
     /* containing a "/bin/sh" parameter for return-into-libc attacks*/
 
     if(attack.inject_param == RETURN_ORIENTED_PROGRAMMING){
-	fprintf(stderr,"ROP Sledding....;)\n");
+	printf("ROP Sledding....;)\n");
 
  	// Extend payload size
     	payload->size += (7 * sizeof(long));
@@ -1513,7 +1512,7 @@ void set_technique(char *choice) {
   } else if(strcmp(choice, opt_techniques[1]) == 0) {
     attack.technique = INDIRECT;
   } else {
-    fprintf(stderr, "Error: Unknown choice of technique \"%s\"\n",
+    printf( "Error: Unknown choice of technique \"%s\"\n",
 	    choice);
   }
 }
@@ -1533,7 +1532,7 @@ void set_inject_param(char *choice) {
     attack.inject_param = RETURN_ORIENTED_PROGRAMMING;
   } else {
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of injection parameter \"%s\"\n",
+      printf( "Error: Unknown choice of injection parameter \"%s\"\n",
 	      choice);
     }
     exit(1);
@@ -1580,7 +1579,7 @@ void set_code_ptr(char *choice) {
 
    else {
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of code pointer \"%s\"\n",
+      printf( "Error: Unknown choice of code pointer \"%s\"\n",
 	      choice);
     }
     exit(1);
@@ -1598,7 +1597,7 @@ void set_location(char *choice) {
     attack.location = DATA;
   } else {
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of memory location \"%s\"\n",
+      printf( "Error: Unknown choice of memory location \"%s\"\n",
 	      choice);
     }
     exit(1);
@@ -1628,7 +1627,7 @@ void set_function(char *choice) {
     attack.function = HOMEBREW;
   } else {
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of vulnerable function \"%s\"\n",
+      printf( "Error: Unknown choice of vulnerable function \"%s\"\n",
 	      choice);
     }
     exit(1);
@@ -1699,7 +1698,7 @@ void print_payload_info(FILE *stream, CHARPAYLOAD *payload) {
     break;
   default:
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of attack parameter");
+      printf( "Error: Unknown choice of attack parameter");
     }
     exit(1);
     break;
@@ -1788,7 +1787,7 @@ boolean is_attack_possible() {
         (attack.code_ptr == STRUCT_FUNC_PTR_DATA) ||
         (attack.code_ptr == STRUCT_FUNC_PTR_BSS) )) {
       if(output_error_msg) {
-	fprintf(stderr, "Error: Impossible to perform a direct attack on the stack into another memory segment.\n");
+	printf( "Error: Impossible to perform a direct attack on the stack into another memory segment.\n");
       }
       return FALSE;
     }
@@ -1809,7 +1808,7 @@ boolean is_attack_possible() {
         (attack.code_ptr == STRUCT_FUNC_PTR_STACK) ||
         (attack.code_ptr == STRUCT_FUNC_PTR_BSS)  )) {
       if(output_error_msg) {
-	fprintf(stderr, "Error: Impossible perform a direct attack on the heap into another memory segment.\n");
+	printf( "Error: Impossible perform a direct attack on the heap into another memory segment.\n");
       }
       return FALSE;
     }
@@ -1830,7 +1829,7 @@ boolean is_attack_possible() {
         (attack.code_ptr == STRUCT_FUNC_PTR_STACK) ||
         (attack.code_ptr == STRUCT_FUNC_PTR_HEAP)  )) {
       if(output_error_msg) {
-	fprintf(stderr, "Error: Impossible to peform a direct attack in the BSS segment into another memory segment.\n");
+	printf( "Error: Impossible to peform a direct attack in the BSS segment into another memory segment.\n");
       }
       return FALSE;
     }
@@ -1852,7 +1851,7 @@ boolean is_attack_possible() {
         (attack.code_ptr == STRUCT_FUNC_PTR_HEAP) ||
         (attack.code_ptr == STRUCT_FUNC_PTR_BSS) )) {
       if(output_error_msg) {
-	fprintf(stderr, "Error: Impossible to perform a direct attack in the Data segment into another memory segment.\n");
+	printf( "Error: Impossible to perform a direct attack in the Data segment into another memory segment.\n");
       }
 
 
@@ -1861,7 +1860,7 @@ boolean is_attack_possible() {
     break;
   default:
     if(output_error_msg) {
-      fprintf(stderr, "Error: Unknown choice of buffer location\n");
+      printf( "Error: Unknown choice of buffer location\n");
     }
     return FALSE;
   }
@@ -1876,7 +1875,7 @@ boolean is_attack_possible() {
      attack.inject_param == RETURN_INTO_LIBC &&
      attack.code_ptr != OLD_BASE_PTR) {
     if(output_error_msg) {
-      fprintf(stderr, "Error: Impossible to perform an indirect return-into-libc attack since parameters for the libc function cannot be injected.\n");
+      printf( "Error: Impossible to perform an indirect return-into-libc attack since parameters for the libc function cannot be injected.\n");
     }
     return FALSE;
   }
@@ -1888,7 +1887,7 @@ boolean is_attack_possible() {
     case STRUCT_FUNC_PTR_DATA:
     case STRUCT_FUNC_PTR_BSS:
 	if(attack.technique != DIRECT){
-		fprintf(stderr,"Error: Impossible...for now at least :)\n");
+		printf("Error: Impossible...for now at least :)\n");
 		return FALSE;
 	}
         break;
@@ -1897,7 +1896,7 @@ boolean is_attack_possible() {
 	break;  
  }
   if(attack.inject_param == RETURN_ORIENTED_PROGRAMMING && (attack.technique != DIRECT || attack.code_ptr != RET_ADDR)){
-     fprintf(stderr,"Error: Impossible...for now at least :)\n");
+     printf("Error: Impossible...for now at least :)\n");
      return FALSE;
   }
 
