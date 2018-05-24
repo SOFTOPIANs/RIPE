@@ -173,8 +173,8 @@ int main(int argc, char **argv) {
       break;
     case 'e':
       if(strcmp("t", optarg) == 0) {
-	output_error_msg = TRUE;
-	fprintf(stderr, "Set output_error_msg = TRUE\n");
+      	output_error_msg = TRUE;
+	     fprintf(stderr, "Set output_error_msg = TRUE\n");
       } else {
 	output_error_msg = FALSE;
 	fprintf(stderr,

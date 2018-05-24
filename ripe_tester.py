@@ -80,10 +80,10 @@ for attack in attacks:
 						stamp2 = ""
 						if repeat_times > 1:
 							stamp2 = "["
-							if i < 10:
+							if 10 <= repeat_times & i < 10:
 								stamp2 = stamp2 + "0"
 							stamp2 = stamp2+str(i)+"/"+str(repeat_times)+"] "
-						cmdline = "./build/ripe_attack_generator -t "+tech+" -i "+attack+" -c " + ptr + "  -l " + loc +" -f " + func + " > /tmp/ripe_log 2>&1"
+						cmdline = "./build/ripe_attack_generator -t "+tech+" -i "+attack+" -c " + ptr + "  -l " + loc +" -f " + func + " > /tmp/ripe_log >&1"
 						print stamp,stamp2
 						os.system(cmdline)
 						log = open("/tmp/ripe_log","r")
