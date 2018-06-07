@@ -129,11 +129,11 @@ int main(int argc, char **argv) {
   }
 
 // ./build/ripe_attack_generator -t direct -i returnintolibc -c ret  -l stack -f memcpy
-  set_technique("direct");
-  set_inject_param("returnintolibc");
-  set_code_ptr("ret");
-  set_location("stack");
-  set_function("memcpy");
+  attack.technique = DIRECT;
+  attack.inject_param = RETURN_INTO_LIBC;
+  attack.code_ptr = RET_ADDR;
+  attack.location = STACK;
+  attack.function = MEMCPY;
 
   /* If no output option set default */
   if(!has_opened_output_stream && output_debug_info) {
@@ -1438,134 +1438,6 @@ boolean build_payload(CHARPAYLOAD *payload) {
   memset((payload->buffer + payload->size - 1), '\0', 1);
 
   return TRUE;
-}
-
-void set_technique(char *choice) {
-  if(strcmp(choice, opt_techniques[0]) == 0) {
-    attack.technique = DIRECT;
-  } else if(strcmp(choice, opt_techniques[1]) == 0) {
-    attack.technique = INDIRECT;
-  } else {
-    printf("Error: Unknown choice of technique \"%s\"\n",
-      choice);
-  }
-}
-
-void set_inject_param(char *choice) {
-  if(strcmp(choice, opt_inject_params[0]) == 0) {
-    attack.inject_param = INJECTED_CODE_NO_NOP;
-  } else if(strcmp(choice, opt_inject_params[1]) == 0) {
-    attack.inject_param = INJECTED_CODE_SIMPLE_NOP;
-  } else if(strcmp(choice, opt_inject_params[2]) == 0) {
-    attack.inject_param = INJECTED_CODE_POLY_NOP;
-  } else if(strcmp(choice, opt_inject_params[3]) == 0) {
-    attack.inject_param = RETURN_INTO_LIBC;
-  } else if(strcmp(choice, opt_inject_params[4]) == 0) {
-    attack.inject_param = CREATE_FILE;
-  } else if(strcmp(choice, opt_inject_params[5]) == 0) {
-    attack.inject_param = RETURN_ORIENTED_PROGRAMMING;
-  } else {
-    if(output_error_msg) {
-      printf("Error: Unknown choice of injection parameter \"%s\"\n",
-        choice);
-    }
-    exit(1);
-  }
-}
-
-void set_code_ptr(char *choice) {
-  if(strcmp(choice, opt_code_ptrs[0]) == 0) {
-    attack.code_ptr = RET_ADDR;
-  } else if(strcmp(choice, opt_code_ptrs[1]) == 0) {
-    attack.code_ptr = OLD_BASE_PTR;
-  } else if(strcmp(choice, opt_code_ptrs[2]) == 0) {
-    attack.code_ptr = FUNC_PTR_STACK_VAR;
-  } else if(strcmp(choice, opt_code_ptrs[3]) == 0) {
-    attack.code_ptr = FUNC_PTR_STACK_PARAM;
-  } else if(strcmp(choice, opt_code_ptrs[4]) == 0) {
-    attack.code_ptr = FUNC_PTR_HEAP;
-  } else if(strcmp(choice, opt_code_ptrs[5]) == 0) {
-    attack.code_ptr = FUNC_PTR_BSS;
-  } else if(strcmp(choice, opt_code_ptrs[6]) == 0) {
-    attack.code_ptr = FUNC_PTR_DATA;
-  } else if(strcmp(choice, opt_code_ptrs[7]) == 0) {
-    attack.code_ptr = LONGJMP_BUF_STACK_VAR;
-  } else if(strcmp(choice, opt_code_ptrs[8]) == 0) {
-    attack.code_ptr = LONGJMP_BUF_STACK_PARAM;
-  } else if(strcmp(choice, opt_code_ptrs[9]) == 0) {
-    attack.code_ptr = LONGJMP_BUF_HEAP;
-  } else if(strcmp(choice, opt_code_ptrs[10]) == 0) {
-    attack.code_ptr = LONGJMP_BUF_BSS;
-  } else if(strcmp(choice, opt_code_ptrs[11]) == 0) {
-    attack.code_ptr = LONGJMP_BUF_DATA;
-  } else if(strcmp(choice,opt_code_ptrs[12]) == 0){
-    attack.code_ptr = STRUCT_FUNC_PTR_STACK;
-  } 
-    else if(strcmp(choice,opt_code_ptrs[13]) == 0){
-    attack.code_ptr = STRUCT_FUNC_PTR_HEAP;
-  } 
-    else if(strcmp(choice,opt_code_ptrs[14]) == 0){
-    attack.code_ptr = STRUCT_FUNC_PTR_DATA;
-  } 
-    else if(strcmp(choice,opt_code_ptrs[15]) == 0){
-    attack.code_ptr = STRUCT_FUNC_PTR_BSS;
-  } 
-
-   else {
-    if(output_error_msg) {
-      printf("Error: Unknown choice of code pointer \"%s\"\n",
-        choice);
-    }
-    exit(1);
-  }
-}
-
-void set_location(char *choice) {
-  if(strcmp(choice, opt_locations[0]) == 0) {
-    attack.location = STACK;
-  } else if(strcmp(choice, opt_locations[1]) == 0) {
-    attack.location = HEAP;
-  } else if(strcmp(choice, opt_locations[2]) == 0) {
-    attack.location = BSS;
-  } else if(strcmp(choice, opt_locations[3]) == 0) {
-    attack.location = DATA;
-  } else {
-    if(output_error_msg) {
-      printf("Error: Unknown choice of memory location \"%s\"\n",
-        choice);
-    }
-    exit(1);
-  }
-}
-
-void set_function(char *choice) {
-  if(strcmp(choice, opt_funcs[0]) == 0) {
-    attack.function = MEMCPY;
-  } else if(strcmp(choice, opt_funcs[1]) == 0) {
-    attack.function = STRCPY;
-  } else if(strcmp(choice, opt_funcs[2]) == 0) {
-    attack.function = STRNCPY;
-  } else if(strcmp(choice, opt_funcs[3]) == 0) {
-    attack.function = SPRINTF;
-  } else if(strcmp(choice, opt_funcs[4]) == 0) {
-    attack.function = SNPRINTF;
-  } else if(strcmp(choice, opt_funcs[5]) == 0) {
-    attack.function = STRCAT;
-  } else if(strcmp(choice, opt_funcs[6]) == 0) {
-    attack.function = STRNCAT;
-  } else if(strcmp(choice, opt_funcs[7]) == 0) {
-    attack.function = SSCANF;
-  } else if(strcmp(choice, opt_funcs[8]) == 0) {
-    attack.function = FSCANF;
-  } else if(strcmp(choice, opt_funcs[9]) == 0) {
-    attack.function = HOMEBREW;
-  } else {
-    if(output_error_msg) {
-      printf("Error: Unknown choice of vulnerable function \"%s\"\n",
-        choice);
-    }
-    exit(1);
-  }
 }
 
 boolean contains_terminating_char(unsigned long value) {
