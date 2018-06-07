@@ -15,7 +15,8 @@ CFLAGS=-fno-stack-protector -fsanitize=cpi -w
 # NO STACK PROTECTOR
 # CFLAGS=-fno-stack-protector
 ## [CC settings]
-CC=/usr/local/bin/clang_cpi
+# CC=/usr/local/bin/clang_cpi
+CC=/usr/local/cpi/bin/clang -w
 # [basic]
 # CC=gcc
 all: ripe_attack_generator
