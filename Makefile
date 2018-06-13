@@ -9,7 +9,7 @@
 # CPS
 # CFLAGS=-fno-stack-protector -fsanitize=cpi -mllvm -CPS -w
 # CPI
-CFLAGS=-fno-stack-protector -fsanitize=cpi -w 
+CFLAGS=-fno-stack-protector -fsanitize=cpi -w # -fsanitize=safe-stack
 # STACK PROTECTOR
 # CFLAGS=-fstack-protector-all
 # NO STACK PROTECTOR
@@ -21,6 +21,7 @@ CC=/usr/local/cpi/bin/clang -w
 # CC=gcc
 all: ripe_attack_generator
 simple: ripe_simple
+simple2: ripe_simple2
 
 clean:
 	rm ./build/*
@@ -35,3 +36,6 @@ ripe_attack_generator: ./source/ripe_attack_generator.c
 
 ripe_simple: ./source/ripe_simple.c
 	${CC} ${CFLAGS} ./source/ripe_simple.c -m32 -o ./build/ripe_simple
+
+ripe_simple2: ./source/ripe_simple2.c
+	${CC} ${CFLAGS} ./source/ripe_simple2.c -m32 -o ./build/ripe_simple2
