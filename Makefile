@@ -5,11 +5,13 @@
 #
 ## [CFLAGS settings]
 # SAFESTACK
-# CFLAGS=-fno-stack-protector -fsanitize=safe-stack -w
+# CFLAGS=-fno-stack-protector -fsanitize=safe-stack #-fsanitize=cpi
 # CPS
-# CFLAGS=-fno-stack-protector -fsanitize=cpi -mllvm -CPS -w
+# CFLAGS=-fno-stack-protector -fsanitize=cpi -mllvm -CPS -fsanitize=safe-stack
 # CPI
-CFLAGS=-fno-stack-protector -fsanitize=cpi -w # -fsanitize=safe-stack
+# CFLAGS=-fno-stack-protector -fsanitize=cpi -fsanitize=safe-stack
+# CFI
+CFLAGS=-fno-stack-protector -fsanitize=cfi -fvisibility=default -flto 
 # STACK PROTECTOR
 # CFLAGS=-fstack-protector-all
 # NO STACK PROTECTOR
@@ -18,7 +20,7 @@ CFLAGS=-fno-stack-protector -fsanitize=cpi -w # -fsanitize=safe-stack
 # CC=/usr/local/bin/clang_cpi
 CC=/usr/local/cpi/bin/clang -w
 # [basic]
-# CC=gcc
+# CC=gcc -w
 all: ripe_attack_generator
 simple: ripe_simple
 simple2: ripe_simple2
